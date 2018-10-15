@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<link href="https://ssl.gstatic.com/docs/script/css/add-ons.css"
+     rel="stylesheet"> 
+<html>
+  <head>
+    <base target="_top">
+  </head>
+  <body>
+    <p>WR Jarvis</p>
+    <p id="gif"></p>
+    <button class="blue" id="make_bibli" onclick='make_bibli()'>Make Bibliography</button>
+    <button class="blue" type='reset' id='check_count' onclick='check_count()'>Check Wordcount</button>
+    <div id='display_count'></div>
+    <div id='partCount'></div>
+  </body>
+</html>
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js">
+</script>
+
+<script>
+var latestCount = [];
+function check_count(){
+  document.getElementById('partCount').innerHTML = '';
+  google.script.run.withSuccessHandler(display).main();
+  function display(paraList){
+    var totalNum = 0;
+    paraList.forEach(function(paraObj){
+      var heading = Object.keys(paraObj)[0];
+      var num = paraObj[heading];
+      totalNum += num;
+      newp = document.createElement('p');
+      newp.innerHTML = heading+" "+String(num);
+      document.getElementById("partCount").appendChild(newp);
+    })
+    latestCount.push(totalNum);
+    document.getElementById('display_count').innerHTML = "Total number: " + String(totalNum);
+    if (latestCount.length>=2){
+      if((latestCount[latestCount.length-2]-latestCount[latestCount.length-1])>100){
+        console.log('Hurray')
+        var gifTag = document.getElementById('gif');
+        gifTag.innerHTML = "<img src='https://media1.tenor.com/images/d1b7019245856b67ac465230d8b5b928/tenor.gif?itemid=9602869' width='300px'>"
+        setTimeout(function(){gifTag.style.display='none'}, 5000)
+      }
+    }
+  };
+};
+function make_bibli(){
+  google.script.run.create_bibli()
+};
+</script>
