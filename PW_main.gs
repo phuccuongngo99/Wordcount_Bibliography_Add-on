@@ -6,7 +6,8 @@ function onInstall() {
 function onOpen(){
   DocumentApp.getUi() // return Ui class to be modified
   .createAddonMenu()
-  .addItem('PW',"showSidebar") //addItem(name, function to invoke)
+  .addItem('Wordcount',"showSidebar") //addItem(name, function to invoke)
+  .addItem("Insert Bibliography", "createBibli")
   .addToUi(); 
 }
 
@@ -18,32 +19,32 @@ function showSidebar(){
 }
 
 function main(){
-  var removeHeading = ['abstract','acknowledgement','acknowledgements','appendix','bibliography','table','content','contents'];
   var para = DocumentApp.getActiveDocument().getBody().getParagraphs();
   //remove nullparagraphs and Figure descriptions
-  var paragraphs = para.filter(function(paragraph){return (paragraph.getText().trim().length>0 && paragraph.getAttributes().ITALIC===null)})
+  
+  //Testing removing table
+  var tables = DocumentApp.getActiveDocument().getBody().getTables();
+  
+  var listItem = DocumentApp.getActiveDocument().getBody().getListItems();
+  Logger.log(listItem);
+  
+  var paragraphs = para.filter(function(paragraph){return (paragraph.getText().trim().length>0)})
   var obj = {};
   var paraList = [];
   //creating an array of object, each object contain pair (heading, array of paragraphs word)
   paragraphs.forEach(function(paragraph){
     var attribute = paragraph.getAttributes();
-    if (String(attribute.HEADING)!=='Normal'){
+    if (String(attribute.HEADING)!=='Normal'|| attribute.BOLD!==null){
       obj = {};
       obj[paragraph.getText().trim()] = [];
       paraList.push(obj)
-    } else { 
+    } else {
+      //Logger.log(paragraph.getText().trim())
       if (paraList.length>0){
         var latestObj = paraList[paraList.length-1];
         latestObj[Object.keys(latestObj)[0]].push(paragraph.getText().trim())
       }
     }
-  })
-  //remove abstract, acknowledgements, appendix, bibliography
-  paraList = paraList.filter(function(paraObj){
-    //getting the first word of the heading
-    var heading = Object.keys(paraObj)[0].trim().toLowerCase().match(/\S+/g)[0]
-    heading = heading.replace(/;/g, ""); //removing :,; after the heading, making it easier to check n remove
-    return !(removeHeading.indexOf(heading) >= 0)
   })
   //Send the array of paragraphs word to wordCount() function
   paraList.forEach(function(paraObj){
@@ -60,11 +61,13 @@ function wordCount(paragraphs){
     var paragraph = paragraphs[i];
     //getting list of words
     words = paragraph.match(/\S+/g);
-    // Removing figure discription, usually starting with Figure 2
-    if (words[0].toLowerCase()=='figure' && !isNaN(words[1][0])){
-      break;
-    } 
-    words = words.filter(function(word){return !word.match(/\(\s*[A-Z]*\s*\)*/)})
+    // Removing figure discription, usually starting with Figure 2 or Fig 2
+    if (['figure','fig'].indexOf(words[0].toLowerCase())>=0 && !isNaN(words[1][0])){
+      continue;
+    }
+    words = words.filter(function(word){return !(word.match(/\(\s*[A-Z]*\s*\)*/) || word===",")})
+    words = words.map(function(word){return word.replace(/['"]/g,"")})
+    //Logger.log(words)
     if (words !== null) {
     //removing (Fig 1)
       words.forEach(function(word){
@@ -74,12 +77,16 @@ function wordCount(paragraphs){
         };
       });
       //removing the proper nouns (consecutive uppercase words counted as 1 word)
-      words = words.filter(function(word){
-        var i = words.indexOf(word);
+      var properNounCount = 0
+      words.forEach(function(word){
         before = word;
-        after = words[i+1];
-        if (after === undefined) return true
-        return !(/[A-Z]/.test(before[0]) && /[A-Z]/.test(after[0]))
+        after = words[properNounCount+1];
+        if (after !== undefined) {
+          //if before capital noun is followed by ',' then don't remove
+          if (/[A-Z]/.test(before[0]) && before[before.length-1]!==',' && /[A-Z]/.test(after[0])) {
+            words.splice(properNounCount,1)
+          } else {properNounCount++}
+        }
       });
       paraCount += words.length;
     }
@@ -87,7 +94,7 @@ function wordCount(paragraphs){
   return paraCount
 };
 
-function create_bibli(){
+function createBibli(){
   var body = DocumentApp.getActiveDocument().getBody();
   body.appendParagraph("Bibliography").setHeading(DocumentApp.ParagraphHeading.HEADING1); //set headings for Bibliography so that it is excluded
   var footnoteList = DocumentApp.getActiveDocument().getFootnotes(); // return a list of footnotes containing class paragraph
@@ -115,6 +122,6 @@ function create_bibli(){
   style[DocumentApp.Attribute.INDENT_FIRST_LINE] = 0;
   style[DocumentApp.Attribute.INDENT_START] = 36;
   footnoteList.forEach(function(footnotePara){
-    body.appendParagraph(footnotePara.setAttributes(style));
+    body.appendParagraph(footnotePara.setHeading(DocumentApp.ParagraphHeading.NORMAL).setAttributes(style));
   });
 }
