@@ -6,9 +6,14 @@
     <base target="_top">
   </head>
   <body>
-    <p id="gif"></p>
-    <button class="blue" id="make_bibli" onclick='make_bibli()'>Make Bibliography</button>
-    <button class="blue" type='reset' id='check_count' onclick='check_count()'>Check Wordcount</button>
+    <div>
+      <button class="blue" type='reset' id='check_count' onclick='checkCount()'>Check Wordcount</button>
+    </div>
+    <div>
+      <form name="listForm" class="form-inline">
+      Total Word-count: <input type="text" size="3" name="total" value="0"/>
+      </form>
+    </div>
     <div id='display_count'></div>
     <div id='partCount'></div>
   </body>
@@ -18,39 +23,33 @@
 </script>
 
 <script>
-var latestCount = [];
-function check_count(){
+function checkTotal() {
+  document.listForm.total.value = '';
+  var sum = 0;
+  for (var i=0;i<document.listForm.choice.length;i++) {
+    if (document.listForm.choice[i].checked) {
+	  sum += parseInt(document.listForm.choice[i].value);
+	}
+  }
+  document.listForm.total.value = sum;
+}
+
+function checkCount(){
   document.getElementById('partCount').innerHTML = '';
   google.script.run.withSuccessHandler(display).main();
   function display(paraList){
+    document.listForm.innerHTML = "Total Word-count: <input type='text' size='1' name='total' value='0'/>"
     var totalNum = 0;
     paraList.forEach(function(paraObj){
       var heading = Object.keys(paraObj)[0];
       var num = paraObj[heading];
       totalNum += num;
-      newp = document.createElement('p');
-      newp.innerHTML = heading+' ('+String(num)+')';
-      document.getElementById("partCount").appendChild(newp);
+      // creating new checkbox
+      var newp = document.createElement('p')
+      newp.innerHTML = "<input type='checkbox' name='choice' value="+String(num)+" onchange='checkTotal()' checked/>"+heading+" ("+String(num)+") "+"<br/>"
+      document.listForm.appendChild(newp)
     })
-    latestCount.push(totalNum);
-    document.getElementById('display_count').innerHTML = 'Total: '+String(totalNum)+' words';
-    if (latestCount.length>=2){
-      var gifTag = document.getElementById('gif');
-      var wordCut = latestCount[latestCount.length-2]-latestCount[latestCount.length-1];
-      if (wordCut <= -100){
-        gifTag.innerHTML = "<img src='https://media.giphy.com/media/fYT0BqHBQUd4Q/giphy.gif' width='280px'>"
-        setTimeout(function(){gifTag.innerHTML=''}, 3000);
-      } else if (100 <= wordCut && wordCut<= 200){
-          gifTag.innerHTML = "<img src='https://media1.tenor.com/images/d1b7019245856b67ac465230d8b5b928/tenor.gif?itemid=9602869' width='280px'>"
-          setTimeout(function(){gifTag.innerHTML=''}, 3000);
-      } else if (wordCut>=200){
-          gifTag.innerHTML = "<img src='https://i.redd.it/ick9iqlc7czz.gif' width='280px'>"
-          setTimeout(function(){gifTag.innerHTML=''}, 3000);
-      }
-    }
-  };
-};
-function make_bibli(){
-  google.script.run.create_bibli()
+    document.listForm.total.value = totalNum;
+  }
 };
 </script>
