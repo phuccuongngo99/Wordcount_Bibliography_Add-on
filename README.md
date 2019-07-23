@@ -7,4 +7,5 @@ Beta Launch: (15 October 2018)
 *Bibliography appended at the end of the document (taken from the footnotes)
 
 
-***Latest version*** in 'master' branch (version as seen on the Add-ons store)
+***Latest version*** (04_Nov_2019) (To be initiated in 2019) 
+in 'master' branch (version as seen on the Add-ons store)
