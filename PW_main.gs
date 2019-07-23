@@ -6,7 +6,8 @@ function onInstall() {
 function onOpen(){
   DocumentApp.getUi() // return Ui class to be modified
   .createAddonMenu()
-  .addItem('PW',"showSidebar") //addItem(name, function to invoke)
+  .addItem('Wordcount',"showSidebar") //addItem(name, function to invoke)
+  .addItem("Insert Bibliography", "createBibli")
   .addToUi(); 
 }
 
@@ -20,18 +21,17 @@ function showSidebar(){
 function main(){
   var removeHeading = ['abstract','acknowledgement','acknowledgements','appendix','bibliography','table','content','contents'];
   var para = DocumentApp.getActiveDocument().getBody().getParagraphs();
-  //remove nullparagraphs and Figure descriptions
   var paragraphs = para.filter(function(paragraph){return (paragraph.getText().trim().length>0 && paragraph.getAttributes().ITALIC===null)})
   var obj = {};
   var paraList = [];
   //creating an array of object, each object contain pair (heading, array of paragraphs word)
   paragraphs.forEach(function(paragraph){
     var attribute = paragraph.getAttributes();
-    if (String(attribute.HEADING)!=='Normal'){
+    if (String(attribute.HEADING)!=='Normal'|| attribute.BOLD!==null){
       obj = {};
       obj[paragraph.getText().trim()] = [];
       paraList.push(obj)
-    } else { 
+    } else {
       if (paraList.length>0){
         var latestObj = paraList[paraList.length-1];
         latestObj[Object.keys(latestObj)[0]].push(paragraph.getText().trim())
@@ -54,40 +54,53 @@ function main(){
 };
 
 function wordCount(paragraphs){
-  var removeFig = ['(fig','(figure','(fig.','(appendix'];
+  var removeFig = ['(fig','(figure','(fig.','(appendix','(section'];
   var paraCount = 0;
   for (var i=0; i<paragraphs.length; i++){
     var paragraph = paragraphs[i];
     //getting list of words
     words = paragraph.match(/\S+/g);
-    // Removing figure discription, usually starting with Figure 2
-    if (words[0].toLowerCase()=='figure' && !isNaN(words[1][0])){
-      break;
-    } 
-    words = words.filter(function(word){return !word.match(/\(\s*[A-Z]*\s*\)*/)})
+    // Removing figure discription, usually starting with Figure 2 or Fig 2
+    if (['figure','fig'].indexOf(words[0].toLowerCase())>=0 && !isNaN(words[1][0])){
+      continue;
+    }
+    //removing acronyms in brackets
+    words = words.filter(function(word){return !(word.match(/\(\s*[A-Z0-9]*\s*\)+/) || word===",")})
+    //replacing funny curly double/single quote with standard double/single quote
+    words = words.map(function(word){return word.replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/['"]/g,"")})
     if (words !== null) {
-    //removing (Fig 1)
-      words.forEach(function(word){
-        //can be simplified with regex
-        if (removeFig.indexOf(word.toLowerCase())>=0 && !isNaN(words[words.indexOf(word)+1][0])){
-          words.splice(words.indexOf(word),2);
-        };
-      });
+    //removing (Fig 1)      
+      for (var refCount=0; refCount<words.length-1;refCount++) {
+        if (removeFig.indexOf(words[refCount].toLowerCase())>=0){ // if it has (fig, (appendix or (section than remove 2 words from it
+          words.splice(refCount,2)
+          refCount--
+        }
+      }
       //removing the proper nouns (consecutive uppercase words counted as 1 word)
-      words = words.filter(function(word){
-        var i = words.indexOf(word);
-        before = word;
-        after = words[i+1];
-        if (after === undefined) return true
-        return !(/[A-Z]/.test(before[0]) && /[A-Z]/.test(after[0]))
-      });
+      var conjunction = ['the','of','for','from','at','in'] //conjunction may be inserted in between.
+      for (var beforeIndex=0;beforeIndex<words.length;beforeIndex++){
+        //position of the last word
+        var afterIndex=0;
+        var beforeWord = words[beforeIndex]
+        if (/[A-Z]/.test(beforeWord[0]) && beforeWord[beforeWord.length-1]!==','){
+          for (var incrementIndex = beforeIndex+1;incrementIndex<words.length;incrementIndex++){
+            if (/[A-Z]/.test(words[incrementIndex][0])){
+              afterIndex = incrementIndex;
+              if (words[incrementIndex][words[incrementIndex].length-1]===',') break
+            } else if (conjunction.indexOf(words[incrementIndex])>=0){
+              continue;
+            } else break
+          }
+        }
+        words.splice(beforeIndex,afterIndex-beforeIndex)
+      }
       paraCount += words.length;
     }
   }
   return paraCount
 };
 
-function create_bibli(){
+function createBibli(){
   var body = DocumentApp.getActiveDocument().getBody();
   body.appendParagraph("Bibliography").setHeading(DocumentApp.ParagraphHeading.HEADING1); //set headings for Bibliography so that it is excluded
   var footnoteList = DocumentApp.getActiveDocument().getFootnotes(); // return a list of footnotes containing class paragraph
@@ -115,6 +128,6 @@ function create_bibli(){
   style[DocumentApp.Attribute.INDENT_FIRST_LINE] = 0;
   style[DocumentApp.Attribute.INDENT_START] = 36;
   footnoteList.forEach(function(footnotePara){
-    body.appendParagraph(footnotePara.setAttributes(style));
+    body.appendParagraph(footnotePara.setHeading(DocumentApp.ParagraphHeading.NORMAL).setAttributes(style));
   });
 }
