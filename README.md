@@ -8,5 +8,3 @@ Beta Launch: (15 October 2018)
 
 
 ***Latest version*** in 'master' branch (version as seen on the Add-ons store)
-
-***Older version*** in 'old' branch
