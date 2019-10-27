@@ -1,5 +1,5 @@
-# PW_Add_on
-An attempt to alleviate the PW pain
+# Wordcount & Bibliography Add-on_Add_on
+An attempt to alleviate the Project Work pain
 
 Beta Launch: (15 October 2018)
 ***Features included:***
