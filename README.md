@@ -1,4 +1,4 @@
-# Wordcount & Bibliography Add-on_Add_on
+# Wordcount & Bibliography Add-on.
 An attempt to alleviate the Project Work pain of manual counting and compiling bibliography
 Because honestly, no one should be counting 3000 words for like ... 5 times.
 
